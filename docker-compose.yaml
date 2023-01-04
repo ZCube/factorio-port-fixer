@@ -1,0 +1,7 @@
+version: '3'
+services:
+  factorio:
+    image: ghcr.io/zcube/factorio-port-fixer:latest
+    restart: unless-stopped
+    ports:
+     - "34197:34197/udp"
