@@ -9,12 +9,16 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
+	"math"
+	"math/rand"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
+	"github.com/labstack/echo/v4"
 	"github.com/rdegges/go-ipify"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -56,6 +60,66 @@ var localCmd = &cobra.Command{
 		defer stop()
 
 		g, gCtx := errgroup.WithContext(mainCtx)
+
+		e := echo.New()
+
+		e.GET("/health", func(c echo.Context) error {
+			{
+				addr := net.UDPAddr{IP: net.ParseIP(ip)}
+
+				ip := c.RealIP()
+				remote := &net.UDPAddr{Port: int(remotePort), IP: net.ParseIP(ip)}
+
+				conn, err := net.ListenUDP("udp", &addr)
+				if err != nil {
+					sugar.Error(err)
+					return c.String(http.StatusInternalServerError, err.Error())
+				}
+
+				pktIndex := uint16(rand.Intn(math.MaxUint16 + 1))
+				resBuffer := &bytes.Buffer{}
+
+				// ping
+				resBuffer.WriteByte(0)
+				pktIndexBytes := make([]byte, 2)
+				binary.LittleEndian.PutUint16(pktIndexBytes, pktIndex)
+				resBuffer.Write(pktIndexBytes)
+
+				cc, wrerr := conn.WriteTo(resBuffer.Bytes(), remote)
+				if wrerr != nil {
+					sugar.Errorf("net.WriteTo() error: %s\n", wrerr)
+				} else {
+					sugar.Infow("Wrote to socket",
+						"Bytes", cc,
+						"Remote", remote)
+				}
+
+				b := make([]byte, 2048)
+
+				// pong
+				conn.SetReadDeadline(time.Now().Add(time.Second * 5))
+				cc, remote, rderr := conn.ReadFromUDP(b)
+				if rderr != nil {
+					sugar.Error("net.ReadFromUDP() error: %s", rderr)
+					return c.String(http.StatusInternalServerError, rderr.Error())
+				} else {
+					sugar.Infow("Read from socket",
+						"Bytes", cc,
+						"Remote", remote)
+				}
+			}
+			return c.String(http.StatusOK, "OK")
+		})
+
+		g.Go(func() error {
+			sugar.Info("Healthcheck server started")
+			e.HideBanner = true
+			if err := e.Start(fmt.Sprintf(":%v", port)); err != nil && err != http.ErrServerClosed {
+				sugar.Errorf("shutting down the server : %s", err)
+				return err
+			}
+			return nil
+		})
 
 		g.Go(func() error {
 			for {
@@ -115,10 +179,14 @@ var localCmd = &cobra.Command{
 
 		g.Go(func() error {
 			<-gCtx.Done()
-			_, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
 			conn.Close()
+			if err := e.Shutdown(ctx); err != nil {
+				sugar.Error(err)
+				return err
+			}
 			sugar.Infow("graceful shutting down")
 			return nil
 		})
