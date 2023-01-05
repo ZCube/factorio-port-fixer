@@ -16,4 +16,4 @@ EXPOSE 34197/udp
 
 COPY --from=builder /app/factorio-port-fixer /factorio-port-fixer
 
-CMD ["/factorio-port-fixer"]
+CMD ["/factorio-port-fixer", "remote"]

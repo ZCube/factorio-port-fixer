@@ -22,6 +22,72 @@
 
 * 144.24.94.63 is sample server.
 
+## Example
+
+* local mode (with ipify)
+
+```yaml
+version: '3.5'
+
+x-templates:
+  factorio-port-fixer: &x-factorio-port-fixer
+    image: ghcr.io/zcube/factorio-port-fixer:latest
+    command: /factorio-port-fixer local --ip=0.0.0.0 --remotePort=34197
+    restart: unless-stopped
+
+services:
+  pingpong1:
+    << : *x-factorio-port-fixer
+    hostname: pingpong1.factorio.com
+  pingpong2:
+    << : *x-factorio-port-fixer
+    hostname: pingpong2.factorio.com
+  pingpong3:
+    << : *x-factorio-port-fixer
+    hostname: pingpong3.factorio.com
+  pingpong4:
+    << : *x-factorio-port-fixer
+    hostname: pingpong4.factorio.com
+
+  factorio:
+    image: factoriotools/factorio
+    restart: unless-stopped
+    ports:
+     - "34197:34197/udp"
+     - "27015:27015/tcp"
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
+     - ./factorio:/factorio
+    environment:
+     - TZ=UTC
+```
+
+* remote mode
+
+```yaml
+version: '3.5'
+
+services:
+
+  factorio:
+    image: factoriotools/factorio
+    restart: unless-stopped
+    ports:
+     - "34197:34197/udp"
+     - "27015:27015/tcp"
+    volumes:
+     - /etc/localtime:/etc/localtime:ro
+     - ./factorio:/factorio
+    # sample server on oci remote port 34197 fixed
+    extra_hosts:
+     - 'pingpong1.factorio.com:144.24.94.63'
+     - 'pingpong2.factorio.com:144.24.94.63'
+     - 'pingpong3.factorio.com:144.24.94.63'
+     - 'pingpong4.factorio.com:144.24.94.63'
+    environment:
+     - TZ=UTC
+```
+
 ## License
 
 MIT License

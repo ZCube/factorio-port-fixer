@@ -38,9 +38,16 @@ jobs:
         shell: bash
         run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
         id: extract_branch
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.REGISTRY }}/${{ steps.repository.outputs.lowercase }}
       - name: Build and push
         uses: docker/build-push-action@v3
         with:
-          push: true
-          tags: ${{ env.REGISTRY }}/${{ steps.repository.outputs.lowercase }}:latest
+          context: .
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           platforms: linux/amd64,linux/arm64/v8
