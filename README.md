@@ -29,37 +29,42 @@
 ```yaml
 version: '3.5'
 
-x-templates:
-  factorio-port-fixer: &x-factorio-port-fixer
-    image: ghcr.io/zcube/factorio-port-fixer:latest
-    command: /factorio-port-fixer local --ip=0.0.0.0 --remotePort=34197
-    restart: unless-stopped
-
 services:
-  pingpong1:
-    << : *x-factorio-port-fixer
-    hostname: pingpong1.factorio.com
-  pingpong2:
-    << : *x-factorio-port-fixer
-    hostname: pingpong2.factorio.com
-  pingpong3:
-    << : *x-factorio-port-fixer
-    hostname: pingpong3.factorio.com
-  pingpong4:
-    << : *x-factorio-port-fixer
-    hostname: pingpong4.factorio.com
+  pingpong:
+    image: ghcr.io/zcube/factorio-port-fixer
+    command: /factorio-port-fixer local --ip=0.0.0.0 --port=34197 --remotePort=${PORT:-34197}
+    restart: unless-stopped
+    environment:
+      - PORT=${PORT:-34197}
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "1m"
 
   factorio:
     image: factoriotools/factorio
     restart: unless-stopped
+    environment:
+      - PORT=${PORT:-34197}
     ports:
-     - "34197:34197/udp"
+     - "${PORT:-34197}:${PORT:-34197}/udp"
      - "27015:27015/tcp"
     volumes:
      - /etc/localtime:/etc/localtime:ro
      - ./factorio:/factorio
     environment:
      - TZ=UTC
+    links:
+      - 'pingpong:pingpong1.factorio.com'
+      - 'pingpong:pingpong2.factorio.com'
+      - 'pingpong:pingpong3.factorio.com'
+      - 'pingpong:pingpong4.factorio.com'
+    healthcheck:
+      test: curl --fail pingpong:34197/health || exit 1
+      interval: 20s
+      retries: 5
+      start_period: 20s
+      timeout: 10s
 ```
 
 * remote mode
@@ -68,24 +73,30 @@ services:
 version: '3.5'
 
 services:
-
   factorio:
     image: factoriotools/factorio
     restart: unless-stopped
     ports:
-     - "34197:34197/udp"
+     - "31497:31497/udp"
      - "27015:27015/tcp"
     volumes:
      - /etc/localtime:/etc/localtime:ro
      - ./factorio:/factorio
+    environment:
+     - TZ=UTC
     # sample server on oci remote port 34197 fixed
     extra_hosts:
      - 'pingpong1.factorio.com:144.24.94.63'
      - 'pingpong2.factorio.com:144.24.94.63'
      - 'pingpong3.factorio.com:144.24.94.63'
      - 'pingpong4.factorio.com:144.24.94.63'
-    environment:
-     - TZ=UTC
+	# ping check
+    healthcheck:
+      test: curl --fail pingpong1.factorio.com:34197/health || exit 1
+      interval: 20s
+      retries: 5
+      start_period: 20s
+      timeout: 10s
 ```
 
 ## License
