@@ -59,6 +59,7 @@ services:
       - 'pingpong:pingpong2.factorio.com'
       - 'pingpong:pingpong3.factorio.com'
       - 'pingpong:pingpong4.factorio.com'
+    # ping check
     healthcheck:
       test: curl --fail pingpong:34197/health || exit 1
       interval: 20s
@@ -90,7 +91,7 @@ services:
      - 'pingpong2.factorio.com:144.24.94.63'
      - 'pingpong3.factorio.com:144.24.94.63'
      - 'pingpong4.factorio.com:144.24.94.63'
-	# ping check
+    # ping check
     healthcheck:
       test: curl --fail pingpong1.factorio.com:34197/health || exit 1
       interval: 20s
