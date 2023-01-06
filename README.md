@@ -100,6 +100,17 @@ services:
       timeout: 10s
 ```
 
+* pingpong server for remote mode (144.24.94.63)
+```yaml
+version: '3'
+services:
+  factorio:
+    image: ghcr.io/zcube/factorio-port-fixer
+    restart: unless-stopped
+    ports:
+     - "34197:34197/udp"
+     - "34197:34197/tcp"
+```
 ## License
 
 MIT License
