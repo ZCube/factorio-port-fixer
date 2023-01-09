@@ -78,7 +78,7 @@ services:
     image: factoriotools/factorio
     restart: unless-stopped
     ports:
-     - "31497:31497/udp"
+     - "34197:34197/udp"
      - "27015:27015/tcp"
     volumes:
      - /etc/localtime:/etc/localtime:ro
