@@ -46,14 +46,13 @@ services:
     restart: unless-stopped
     environment:
       - PORT=${PORT:-34197}
+      - TZ=UTC
     ports:
      - "${PORT:-34197}:${PORT:-34197}/udp"
      - "27015:27015/tcp"
     volumes:
      - /etc/localtime:/etc/localtime:ro
      - ./factorio:/factorio
-    environment:
-     - TZ=UTC
     links:
       - 'pingpong:pingpong1.factorio.com'
       - 'pingpong:pingpong2.factorio.com'
