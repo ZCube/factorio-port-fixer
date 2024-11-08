@@ -69,7 +69,59 @@ var localCmd = &cobra.Command{
 
 				addr := net.UDPAddr{IP: net.ParseIP(ip)}
 
-				remote := &net.UDPAddr{Port: int(localPort), IP: net.ParseIP("127.0.0.1")}
+				remote := &net.UDPAddr{Port: int(port), IP: net.ParseIP("127.0.0.1")}
+
+				conn, err := net.ListenUDP("udp", &addr)
+				if err != nil {
+					sugar.Error(err)
+					return c.String(http.StatusInternalServerError, err.Error())
+				}
+
+				pktIndex := uint16(rand.Intn(math.MaxUint16 + 1))
+				resBuffer := &bytes.Buffer{}
+
+				// ping
+				resBuffer.WriteByte(0)
+				pktIndexBytes := make([]byte, 2)
+				binary.LittleEndian.PutUint16(pktIndexBytes, pktIndex)
+				resBuffer.Write(pktIndexBytes)
+
+				cc, wrerr := conn.WriteTo(resBuffer.Bytes(), remote)
+				if wrerr != nil {
+					sugar.Errorf("net.WriteTo() error: %s\n", wrerr)
+				} else {
+					sugar.Debugw("Wrote to socket",
+						"Bytes", cc,
+						"Remote", remote,
+						"RemoteClientIP", remoteClientIp,
+					)
+				}
+
+				b := make([]byte, 2048)
+
+				// pong
+				conn.SetReadDeadline(time.Now().Add(time.Second * 5))
+				cc, remote, rderr := conn.ReadFromUDP(b)
+				if rderr != nil {
+					sugar.Error("net.ReadFromUDP() error: %s", rderr)
+					return c.String(http.StatusInternalServerError, rderr.Error())
+				} else {
+					sugar.Debugw("Read from socket",
+						"Bytes", cc,
+						"Remote", remote)
+				}
+			}
+			return c.String(http.StatusOK, "OK")
+		})
+
+		// factorio server health check : from factorio server to this server
+		e.GET("/health_for_factorio", func(c echo.Context) error {
+			{
+				remoteClientIp := c.RealIP()
+
+				addr := net.UDPAddr{IP: net.ParseIP(ip)}
+
+				remote := &net.UDPAddr{Port: int(remotePort), IP: net.ParseIP(remoteClientIp)}
 
 				conn, err := net.ListenUDP("udp", &addr)
 				if err != nil {

@@ -68,7 +68,7 @@ var remoteCmd = &cobra.Command{
 
 				addr := net.UDPAddr{IP: net.ParseIP(ip)}
 
-				remote := &net.UDPAddr{Port: int(localPort), IP: net.ParseIP("127.0.0.1")}
+				remote := &net.UDPAddr{Port: int(port), IP: net.ParseIP("127.0.0.1")}
 
 				conn, err := net.ListenUDP("udp", &addr)
 				if err != nil {
