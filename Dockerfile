@@ -1,4 +1,4 @@
-FROM golang:1.19 as builder
+FROM golang:1.22-alpine as builder
 
 WORKDIR /app
 
@@ -10,10 +10,16 @@ ADD . /app/
 
 RUN CGO_ENABLE=0 go build -o /app/factorio-port-fixer
 
-FROM gcr.io/distroless/base-debian11
+FROM alpine:3.20.3
 
-EXPOSE 34197/udp
+RUN apk add --no-cache ca-certificates curl
+
+EXPOSE 34197/udp 34197/tcp
 
 COPY --from=builder /app/factorio-port-fixer /factorio-port-fixer
 
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl --fail http://localhost:34197/health || exit 1
+
 CMD ["/factorio-port-fixer", "remote"]
+

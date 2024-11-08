@@ -65,7 +65,7 @@ var pingCmd = &cobra.Command{
 		if wrerr != nil {
 			sugar.Errorf("net.WriteTo() error: %s\n", wrerr)
 		} else {
-			sugar.Infow("Wrote to socket",
+			sugar.Debugw("Wrote to socket",
 				"Bytes", cc,
 				"Remote", remote)
 		}
@@ -78,7 +78,7 @@ var pingCmd = &cobra.Command{
 		if rderr != nil {
 			sugar.Fatalf("net.ReadFromUDP() error: %s", rderr)
 		} else {
-			sugar.Infow("Read from socket",
+			sugar.Debugw("Read from socket",
 				"Bytes", cc,
 				"Remote", remote)
 		}

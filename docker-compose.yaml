@@ -1,7 +1,17 @@
-version: '3'
+version: "3"
 services:
-  factorio:
+  factorio-port-fixer:
     image: ghcr.io/zcube/factorio-port-fixer:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-     - "34197:34197/udp"
+      - "34197:34197/udp"
+      - "34197:34197/tcp"
+    healthcheck:
+      test: curl --fail 127.0.0.1:34197/health || exit 1
+      interval: 20s
+      retries: 5
+      start_period: 20s
+      timeout: 10s

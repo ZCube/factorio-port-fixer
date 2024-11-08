@@ -64,10 +64,11 @@ var remoteCmd = &cobra.Command{
 
 		e.GET("/health", func(c echo.Context) error {
 			{
+				remoteClientIp := c.RealIP()
+
 				addr := net.UDPAddr{IP: net.ParseIP(ip)}
 
-				ip := c.RealIP()
-				remote := &net.UDPAddr{Port: int(remotePort), IP: net.ParseIP(ip)}
+				remote := &net.UDPAddr{Port: int(localPort), IP: net.ParseIP("127.0.0.1")}
 
 				conn, err := net.ListenUDP("udp", &addr)
 				if err != nil {
@@ -88,9 +89,11 @@ var remoteCmd = &cobra.Command{
 				if wrerr != nil {
 					sugar.Errorf("net.WriteTo() error: %s\n", wrerr)
 				} else {
-					sugar.Infow("Wrote to socket",
+					sugar.Debugw("Wrote to socket",
 						"Bytes", cc,
-						"Remote", remote)
+						"Remote", remote,
+						"RemoteClientIP", remoteClientIp,
+					)
 				}
 
 				b := make([]byte, 2048)
@@ -102,7 +105,7 @@ var remoteCmd = &cobra.Command{
 					sugar.Error("net.ReadFromUDP() error: %s", rderr)
 					return c.String(http.StatusInternalServerError, rderr.Error())
 				} else {
-					sugar.Infow("Read from socket",
+					sugar.Debugw("Read from socket",
 						"Bytes", cc,
 						"Remote", remote)
 				}
@@ -122,7 +125,7 @@ var remoteCmd = &cobra.Command{
 
 		g.Go(func() error {
 			for {
-				sugar.Infow("Accepting a new packet",
+				sugar.Debugw("Accepting a new packet",
 					"IP", ip,
 					"Port", port)
 
@@ -131,7 +134,7 @@ var remoteCmd = &cobra.Command{
 					sugar.Errorf("net.ReadFromUDP() error: %s", rderr)
 					return rderr
 				} else {
-					sugar.Infow("Read from socket",
+					sugar.Debugw("Read from socket",
 						"Bytes", cc,
 						"Remote", remote)
 				}
@@ -163,7 +166,7 @@ var remoteCmd = &cobra.Command{
 				if wrerr != nil {
 					sugar.Errorf("net.WriteTo() error: %s\n", wrerr)
 				} else {
-					sugar.Infow("Wrote to socket",
+					sugar.Debugw("Wrote to socket",
 						"Bytes", cc,
 						"Remote", remote)
 				}
