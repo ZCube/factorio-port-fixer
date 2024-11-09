@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/rdegges/go-ipify"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
@@ -62,6 +63,8 @@ var localCmd = &cobra.Command{
 		g, gCtx := errgroup.WithContext(mainCtx)
 
 		e := echo.New()
+
+		e.Use(middleware.Logger())
 
 		e.GET("/health", func(c echo.Context) error {
 			{

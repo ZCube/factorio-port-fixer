@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
@@ -61,6 +62,8 @@ var remoteCmd = &cobra.Command{
 		g, gCtx := errgroup.WithContext(mainCtx)
 
 		e := echo.New()
+
+		e.Use(middleware.Logger())
 
 		e.GET("/health", func(c echo.Context) error {
 			{
