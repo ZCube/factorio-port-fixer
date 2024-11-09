@@ -107,7 +107,7 @@ var localCmd = &cobra.Command{
 				cc, remote, rderr := conn.ReadFromUDP(b)
 				if rderr != nil {
 					sugar.Error("net.ReadFromUDP() error: %s", rderr)
-					return c.String(http.StatusInternalServerError, rderr.Error())
+					return c.String(http.StatusBadGateway, rderr.Error())
 				} else {
 					sugar.Debugw("Read from socket",
 						"Bytes", cc,
@@ -159,7 +159,7 @@ var localCmd = &cobra.Command{
 				cc, remote, rderr := conn.ReadFromUDP(b)
 				if rderr != nil {
 					sugar.Error("net.ReadFromUDP() error: %s", rderr)
-					return c.String(http.StatusInternalServerError, rderr.Error())
+					return c.String(http.StatusBadGateway, rderr.Error())
 				} else {
 					sugar.Debugw("Read from socket",
 						"Bytes", cc,
