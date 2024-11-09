@@ -63,7 +63,20 @@ var remoteCmd = &cobra.Command{
 
 		e := echo.New()
 
-		e.Use(middleware.Logger())
+		e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
+			LogURI:    true,
+			LogStatus: true,
+			LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+				sugar.Infow("request",
+					"URI", v.URI,
+					"status", v.Status,
+					"RemoteIP", c.RealIP(),
+				)
+
+				return nil
+			},
+		}))
+		e.Use(middleware.Recover())
 
 		e.GET("/health", func(c echo.Context) error {
 			{
