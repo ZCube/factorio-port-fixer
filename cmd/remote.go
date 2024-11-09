@@ -56,7 +56,14 @@ var remoteCmd = &cobra.Command{
 
 		b := make([]byte, 2048)
 
-		mainCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGKILL, os.Interrupt)
+		signal.Ignore(
+			syscall.SIGHUP,
+		)
+		mainCtx, stop := signal.NotifyContext(context.Background(),
+			os.Interrupt,
+			syscall.SIGTERM,
+			syscall.SIGKILL,
+		)
 		defer stop()
 
 		g, gCtx := errgroup.WithContext(mainCtx)
@@ -67,11 +74,20 @@ var remoteCmd = &cobra.Command{
 			LogURI:    true,
 			LogStatus: true,
 			LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
-				sugar.Infow("request",
-					"URI", v.URI,
-					"status", v.Status,
-					"RemoteIP", c.RealIP(),
-				)
+				if v.Error != nil {
+					sugar.Errorw("request",
+						"URI", v.URI,
+						"status", v.Status,
+						"RemoteIP", c.RealIP(),
+						"Error", v.Error,
+					)
+				} else {
+					sugar.Infow("request",
+						"URI", v.URI,
+						"status", v.Status,
+						"RemoteIP", c.RealIP(),
+					)
+				}
 
 				return nil
 			},
@@ -118,7 +134,9 @@ var remoteCmd = &cobra.Command{
 				conn.SetReadDeadline(time.Now().Add(time.Second * 5))
 				cc, remote, rderr := conn.ReadFromUDP(b)
 				if rderr != nil {
-					sugar.Error("net.ReadFromUDP() error: %s", rderr)
+					sugar.Errorw(fmt.Sprintf("net.ReadFromUDP() error: %s", rderr),
+						"Remote", remote,
+					)
 					return c.String(http.StatusBadGateway, rderr.Error())
 				} else {
 					sugar.Debugw("Read from socket",
@@ -170,7 +188,9 @@ var remoteCmd = &cobra.Command{
 				conn.SetReadDeadline(time.Now().Add(time.Second * 5))
 				cc, remote, rderr := conn.ReadFromUDP(b)
 				if rderr != nil {
-					sugar.Error("net.ReadFromUDP() error: %s", rderr)
+					sugar.Errorw(fmt.Sprintf("net.ReadFromUDP() error: %s", rderr),
+						"Remote", remote,
+					)
 					return c.String(http.StatusBadGateway, rderr.Error())
 				} else {
 					sugar.Debugw("Read from socket",
@@ -199,7 +219,9 @@ var remoteCmd = &cobra.Command{
 
 				cc, remote, rderr := conn.ReadFromUDP(b)
 				if rderr != nil {
-					sugar.Errorf("net.ReadFromUDP() error: %s", rderr)
+					sugar.Errorw(fmt.Sprintf("net.ReadFromUDP() error: %s", rderr),
+						"Remote", remote,
+					)
 					return rderr
 				} else {
 					sugar.Debugw("Read from socket",
@@ -243,6 +265,9 @@ var remoteCmd = &cobra.Command{
 
 		g.Go(func() error {
 			<-gCtx.Done()
+			sugar.Errorw("shutting down the server",
+				"reason", gCtx.Err())
+
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 

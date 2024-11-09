@@ -57,7 +57,14 @@ var localCmd = &cobra.Command{
 
 		b := make([]byte, 2048)
 
-		mainCtx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGKILL, os.Interrupt)
+		signal.Ignore(
+			syscall.SIGHUP,
+		)
+		mainCtx, stop := signal.NotifyContext(context.Background(),
+			os.Interrupt,
+			syscall.SIGTERM,
+			syscall.SIGKILL,
+		)
 		defer stop()
 
 		g, gCtx := errgroup.WithContext(mainCtx)
@@ -68,11 +75,20 @@ var localCmd = &cobra.Command{
 			LogURI:    true,
 			LogStatus: true,
 			LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
-				sugar.Infow("request",
-					"URI", v.URI,
-					"status", v.Status,
-					"RemoteIP", c.RealIP(),
-				)
+				if v.Error != nil {
+					sugar.Errorw("request",
+						"URI", v.URI,
+						"status", v.Status,
+						"RemoteIP", c.RealIP(),
+						"Error", v.Error,
+					)
+				} else {
+					sugar.Infow("request",
+						"URI", v.URI,
+						"status", v.Status,
+						"RemoteIP", c.RealIP(),
+					)
+				}
 
 				return nil
 			},
@@ -250,6 +266,9 @@ var localCmd = &cobra.Command{
 
 		g.Go(func() error {
 			<-gCtx.Done()
+			sugar.Errorw("shutting down the server",
+				"reason", gCtx.Err())
+
 			ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 			defer cancel()
 
