@@ -31,7 +31,7 @@ version: '3.5'
 
 services:
   pingpong:
-    image: ghcr.io/zcube/factorio-port-fixer
+    image: ghcr.io/zcube/factorio-port-fixer:main
     command: /factorio-port-fixer local --ip=0.0.0.0 --port=34197 --remotePort=${PORT:-34197}
     restart: unless-stopped
     environment:
@@ -40,27 +40,34 @@ services:
       driver: "json-file"
       options:
         max-size: "1m"
+    healthcheck:
+      test: curl --fail 127.0.0.1:34197/health || exit 1
+      interval: 20s
+      retries: 5
+      start_period: 20s
+      timeout: 10s
 
   factorio:
-    image: factoriotools/factorio
+    image: factoriotools/factorio:stable
     restart: unless-stopped
     environment:
       - PORT=${PORT:-34197}
       - TZ=UTC
+      - TOKEN=${TOKEN}
     ports:
-     - "${PORT:-34197}:${PORT:-34197}/udp"
-     - "27015:27015/tcp"
+      - "${PORT:-34197}:${PORT:-34197}/udp"
+      - "27015:27015/tcp"
     volumes:
-     - /etc/localtime:/etc/localtime:ro
-     - ./factorio:/factorio
+      - /etc/localtime:/etc/localtime:ro
+      - ./factorio:/factorio
+      
     links:
-      - 'pingpong:pingpong1.factorio.com'
-      - 'pingpong:pingpong2.factorio.com'
-      - 'pingpong:pingpong3.factorio.com'
-      - 'pingpong:pingpong4.factorio.com'
-    # ping check
+      - "pingpong:pingpong1.factorio.com"
+      - "pingpong:pingpong2.factorio.com"
+      - "pingpong:pingpong3.factorio.com"
+      - "pingpong:pingpong4.factorio.com"
     healthcheck:
-      test: curl --fail pingpong:34197/health || exit 1
+      test: curl --fail pingpong:34197/health_for_factorio || exit 1
       interval: 20s
       retries: 5
       start_period: 20s
@@ -90,9 +97,8 @@ services:
      - 'pingpong2.factorio.com:144.24.94.63'
      - 'pingpong3.factorio.com:144.24.94.63'
      - 'pingpong4.factorio.com:144.24.94.63'
-    # ping check
     healthcheck:
-      test: curl --fail pingpong1.factorio.com:34197/health || exit 1
+      test: curl --fail 144.24.94.63:34197/health_for_factorio || exit 1
       interval: 20s
       retries: 5
       start_period: 20s
